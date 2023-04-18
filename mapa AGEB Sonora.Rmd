@@ -1,0 +1,110 @@
+---
+title: "HSDA"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+library(flexdashboard)
+library(rgdal)
+library(readxl)
+library(dplyr)
+library(sf)
+library(leaflet)
+library(RColorBrewer)
+library(DT)
+library(formattable)
+library(tidyr)
+rm(list = ls())
+```
+
+```{r, echo=FALSE}
+# Leer archivo de datos
+ruta <- "~/data/shp_INEGI/26_sonora/conjunto_de_datos/"
+ageb.shp <- readOGR(dsn = ruta, 
+                    layer = "26a", verbose = FALSE);
+
+# renonmbrar  CVE_AGEB
+ageb.shp@data <- ageb.shp@data %>% rename(AGEB = CVE_AGEB)
+
+# Transform to WGS84
+ageb.shp <- spTransform(ageb.shp, CRS("+init=epsg:4326"))
+
+# Print the new spatial reference system
+proj4string(ageb.shp)
+
+# Filtro para Hermosillo
+ageb.shp <- subset(ageb.shp, CVE_MUN == "030")
+
+# Vista de datos
+ageb.shp@data %>% head()
+ageb.shp@data %>% dim()
+```
+
+
+```{r, echo=FALSE}
+# Cargar el paquete haven
+library(foreign)
+
+# Especificar la ruta completa del archivo .sav
+ruta <- "~/data/amai_nse/NSE_por_AGEB_AMAI.sav"
+
+# Leer el archivo .sav
+nse.ageb <- read.spss(ruta) %>%  as.data.frame() 
+nse.ageb %>% dim()
+
+# Cambiar "N/D" por NA
+#nse.ageb$NIVEL <- ifelse(nse.ageb$NIVEL == "N/D", NA, nse.ageb$NIVEL)
+nse.ageb$NIVEL[nse.ageb$NIVEL == "9999"] <- NA
+
+# Aplicar la función trimws() para eliminar los espacios en blanco en los extremos
+nse.ageb$NOM_MUN <- trimws(nse.ageb$NOM_MUN)
+nse.ageb$AGEB <- trimws(nse.ageb$AGEB)
+
+# Reemplazar los espacios en blanco adicionales por un solo espacio
+nse.ageb$NOM_MUN <- gsub("\\s+", " ", nse.ageb$NOM_MUN)
+nse.ageb$AGEB <- gsub("\\s+", " ", nse.ageb$AGEB)
+
+# Filtrar las filas que contienen "Hermosillo" en la columna NOM_MUN
+nse.ageb <- nse.ageb %>% filter(ENT == 26)
+nse.ageb <- nse.ageb %>% filter(NOM_MUN == "Hermosillo")
+#nse.ageb <- nse.ageb %>% filter(grepl("Hermosillo", NOM_MUN))
+```
+
+```{r}
+# Hacer el merge de los datos
+ageb.shp <- merge(ageb.shp, nse.ageb, by = "AGEB")
+ageb.shp@data %>% head()
+
+ageb.shp@data$NIVEL %>% table()
+```
+
+Muestra
+============================================================
+  
+```{r}
+# Definir una tabla de conversión
+tabla_conversion <- c("A/B" = 1, "C+" = 2, "C" = 3, "C-" = 4, "D+" = 5, "D" = 6, "E" = 7, "N/D" = NA)
+
+# Convertir la variable NIVEL a numérica
+ageb.shp$NIVEL_num <- tabla_conversion[as.character(ageb.shp$NIVEL)]
+
+# Crear la paleta de colores
+colores <- colorNumeric(palette = "RdYlBu", domain = c(1, 7), reverse = TRUE, na.color = "gray")
+
+# Crear el mapa y establecer la vista inicial
+mapa <- leaflet(ageb.shp) %>% setView(-111, 29.1, 12)
+
+mapa %>% 
+  addTiles() %>% 
+  addPolygons(fillColor = ~colores(NIVEL_num), weight = 1, opacity = 1, color = "white", 
+              dashArray = "3", fillOpacity = 0.7, 
+              label = ~paste("AGEB:", AGEB, "\n", "NIVEL:", NIVEL), 
+              highlight = highlightOptions(
+                weight = 3, color = "#666", dashArray = "", fillOpacity = 0.7, 
+                bringToFront = TRUE))
+
+``` 
+
