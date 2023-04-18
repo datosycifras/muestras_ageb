@@ -1,0 +1,111 @@
+---
+title: "NSE por AGEB"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+library(flexdashboard)
+library(rgdal)
+library(readxl)
+library(dplyr)
+library(sf)
+library(leaflet)
+library(RColorBrewer)
+library(DT)
+library(formattable)
+library(tidyr)
+rm(list = ls())
+```
+
+```{r}
+source("01 lectura de datos.R")
+#getwd()
+#"/Users/arling/github_dayci/muestras_ageb" %>% list.files()
+#ageb.shp@data %>% head()
+```
+
+
+Hermosillo por NSE
+============================================================
+  
+```{r}
+# Definir una tabla de conversión
+tabla_conversion <- c("A/B" = 1, "C+" = 2, "C" = 3, "C-" = 4, "D+" = 5, "D" = 6, "E" = 7, "N/D" = NA)
+
+# Convertir la variable NIVEL a numérica
+ageb.shp$NIVEL_num <- tabla_conversion[as.character(ageb.shp$NIVEL)]
+
+# Crear la paleta de colores
+colores <- colorNumeric(palette = "RdYlBu", domain = c(1, 7), reverse = TRUE, na.color = "gray")
+
+# Crear el mapa y establecer la vista inicial
+mapa <- leaflet(ageb.shp) %>% setView(-111, 29.1, 12)
+
+mapa %>% 
+  addTiles() %>% 
+  addPolygons(fillColor = ~colores(NIVEL_num), weight = 1, opacity = 1, color = "white", 
+              dashArray = "3", fillOpacity = 0.7, 
+              label = ~paste("AGEB:", AGEB, "\n", "NIVEL:", NIVEL), 
+              highlight = highlightOptions(
+                weight = 3, color = "#666", dashArray = "", fillOpacity = 0.7, 
+                bringToFront = TRUE))
+
+``` 
+
+
+```{r}
+source("02 funcion mapa.R")
+```
+
+
+AGEB de NSE A/B
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "A/B", color = "Purples", bins = seq(0,100, by = 20))
+```
+
+AGEB de NSE C+
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "A/B", color = "Blues", bins = seq(0,100, by = 20))
+```
+
+AGEB de NSE C
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "C+", color = "Greens", bins = seq(0,100, by = 20))
+```
+
+AGEB de NSE C-
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "C", color = "Greens", bins = seq(0,100, by = 20))
+```
+
+AGEB de NSE D+
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "A/B", color = "Oranges", bins = seq(0,100, by = 20))
+```
+
+AGEB de NSE D
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "A/B", color = "Reds", bins = seq(0,100, by = 20))
+```
+
+AGEB de NSE E
+============================================================
+
+```{r}
+graficar_mapa(ageb.shp, "A/B", color = "Reds", bins = seq(0,100, by = 20))
+```

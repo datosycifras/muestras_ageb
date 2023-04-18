@@ -1,0 +1,47 @@
+---
+title: "NSE por AGEB"
+author: "Arling"
+date: '2023-04-18'
+output: 
+  flexdashboard::flex_dashboard:
+    theme: yeti
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(flexdashboard)
+library(leaflet)
+#library(htmltools)
+library(rgdal)
+library(dplyr)
+library(shinyWidgets)
+```
+
+```{r}
+source()
+```
+
+
+```{r}
+# Selector de variable
+#shinyWidgetsGallery()
+seleccion <- awesomeRadio(
+   inputId = "Id003",
+   label = "Radio with status", 
+    choices = c("AB", "C+", "C", "C-", "D+", "D", "E"),
+   selected = "C",
+   status = "warning"
+)
+
+# Gráfico dinámico
+renderPlot({
+  ggplot(datos, aes_string(x = input$variable, y = "y")) +
+    geom_point()
+})
+```
+
+
